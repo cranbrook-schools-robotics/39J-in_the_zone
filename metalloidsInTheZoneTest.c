@@ -1,3 +1,5 @@
+#pragma config(Sensor, dgtl1,  limitClaw,      sensorTouch)
+#pragma config(Sensor, dgtl2,  limitArm,       sensorTouch)
 #pragma config(Motor,  port1,           moGoLeft,      tmotorVex393_HBridge, openLoop, reversed)
 #pragma config(Motor,  port2,           frontLeft,     tmotorVex393HighSpeed_MC29, openLoop, driveLeft)
 #pragma config(Motor,  port3,           frontRight,    tmotorVex393HighSpeed_MC29, openLoop, reversed, driveLeft)
@@ -28,17 +30,20 @@ int between(int control1, int control2){
 task main()
 {
 	int prevBtn8U = 0;
+	int prevBtn5U = 0;
+	int intakeState = 0;
 	while(true){
 		base();
 		arm();
-		intake();
+		intakeState = intake(intakeState, prevBtn5U);
 		moGoManip();
 
-		if(prevBtn8U==1 && vexRT[Btn8U]==0){
+		/*if(prevBtn8U==1 && vexRT[Btn8U]==0){
 			claw();
-		}
+		}*/
 
 		prevBtn8U = vexRT[Btn8U];
+		prevBtn5U = vexRT[Btn5U];
 	}
 }
 
@@ -55,12 +60,12 @@ void arm()
 	motor[lowerArm] = 127*between(Btn6U, Btn6D);
 }
 
-void claw(){
+/*void claw(){
 	motor[intakeClaw] *= -1;
 	if(motor[intakeClaw] == 0){
 		motor[intakeClaw] = 50;
 	}
-}
+}*/
 
 void moGoManip()
 {
@@ -68,8 +73,30 @@ void moGoManip()
 	motor[moGoRight] = 127*between(Btn7U, Btn7R);
 }
 
-void intake()
+int intake(int previousState, int prevBtn5U)
 {
-	motor[intakeArm] = 127*between(Btn5D, Btn5U);
+	//motor[intakeArm] = 127*between(Btn5D, Btn5U);
+	if(previousState == 0){
+		motor[intakeClaw] = 127;
+	}
+	else{
+		if(SensorValue[limitArm] == 0){
+			motor[intakeArm] = 127;
+			motor[intakeClaw] = 127;
+		}
+		else if(SensorValue[limitClaw] == 0){
+			motor[intakeArm] = 0;
+			motor[intakeClaw]	= -127;
+		}
+		else{
+			//move back down the intake, don't we need control over this?
+		}
+	}
 
+	if(prevBtn5U == 1 && vexRT[Btn5U] == 0){
+		return previousState == 0 ? 1 : 0;
+	}
+	return previousState;
 }
+
+
